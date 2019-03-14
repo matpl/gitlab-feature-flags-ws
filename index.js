@@ -1,6 +1,18 @@
 var url = process.argv[2];
+if(!url) {
+	console.error('error: first argument should be the unleash url');
+	process.exit();
+}
 var appName = process.argv[3];
+if(!appName) {
+	console.error('error: second argument should be the unleash appName');
+	process.exit();
+}
 var instanceId = process.argv[4];
+if(!instanceId) {
+	console.error('error: third argument should be the unleash instanceId');
+	process.exit();
+}
 
 const { initialize, isEnabled } = require('unleash-client');
 const instance = initialize({
@@ -18,13 +30,16 @@ var flagsState = {};
 
 function sendFlagState(flagName, interval) {
 	var enabled = isEnabled(flagName);
-	if(flagsState[flagName] === undefined || flagsState[flagName] != enabled) {
+	if(flagsState[flagName] === undefined) {
+		flagsState[flagName] = enabled;
+	}
+	if(flagsState[flagName] != enabled) {
 		flagsState[flagName] = enabled;
 		console.log('send state: %s', flagName + ' ' + enabled);
 		for(let i = monitoredFlags[flagName].length - 1; i >= 0; i--) {
 			try {
 				if(monitoredFlags[flagName][i].readyState == 1) {
-					monitoredFlags[flagName][i].send(flagName + ' ' + enabled);			
+					monitoredFlags[flagName][i].send(flagName + ' ' + enabled);
 				} else {
 					monitoredFlags[flagName].splice(i, 1);
 					if(monitoredFlags[flagName].length == 0) {
@@ -45,6 +60,12 @@ function sendFlagState(flagName, interval) {
 	}
 }
 
+function sendInitial(flagName, ws) {
+	var enabled = isEnabled(flagName);
+	console.log('send initial state: %s', flagName + ' ' + enabled);
+	ws.send(flagName + ' ' + enabled);
+}
+
 function monitorFeatureFlag(flagName, ws) {
 	if(!monitoredFlags[flagName]) {
 		monitoredFlags[flagName] = [];
@@ -60,7 +81,20 @@ function monitorFeatureFlag(flagName, ws) {
 	// this could probably be optimized if we have many connections
 	if(!monitoredFlags[flagName].includes(ws)) {
 		monitoredFlags[flagName].push(ws);
-		//todo: send initial state
+		
+		if(ws.readyState == 1) {
+			try {
+				if(instance.client) {
+					sendInitial(flagName, ws);
+				} else {
+					instance.on('ready', clientData => {
+						sendInitial(flagName, ws);
+					});
+				}
+			} catch(error) {
+                // do nothing... it's gonna get cleaned anyways				
+			}
+		}
 	}
 }
 
