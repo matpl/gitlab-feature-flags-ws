@@ -14,28 +14,32 @@ const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 80 });
 
 var monitoredFlags = {};
+var flagsState = {};
 
 function sendFlagState(flagName, interval) {
 	var enabled = isEnabled(flagName);
-	console.log('send state: %s', flagName + ' ' + enabled);
-	for(let i = monitoredFlags[flagName].length - 1; i >= 0; i--) {
-		try {
-			if(monitoredFlags[flagName][i].readyState == 1) {
-				monitoredFlags[flagName][i].send(flagName + ' ' + enabled);			
-			} else {
+	if(flagsState[flagName] === undefined || flagsState[flagName] != enabled) {
+		flagsState[flagName] = enabled;
+		console.log('send state: %s', flagName + ' ' + enabled);
+		for(let i = monitoredFlags[flagName].length - 1; i >= 0; i--) {
+			try {
+				if(monitoredFlags[flagName][i].readyState == 1) {
+					monitoredFlags[flagName][i].send(flagName + ' ' + enabled);			
+				} else {
+					monitoredFlags[flagName].splice(i, 1);
+					if(monitoredFlags[flagName].length == 0) {
+						console.log('stop monitor: %s', flagName);
+						delete monitoredFlags[flagName];
+						clearInterval(interval);
+					}
+				}
+			} catch(error) {
 				monitoredFlags[flagName].splice(i, 1);
 				if(monitoredFlags[flagName].length == 0) {
 					console.log('stop monitor: %s', flagName);
 					delete monitoredFlags[flagName];
 					clearInterval(interval);
 				}
-			}
-		} catch(error) {
-			monitoredFlags[flagName].splice(i, 1);
-			if(monitoredFlags[flagName].length == 0) {
-				console.log('stop monitor: %s', flagName);
-				delete monitoredFlags[flagName];
-				clearInterval(interval);
 			}
 		}
 	}
@@ -56,6 +60,7 @@ function monitorFeatureFlag(flagName, ws) {
 	// this could probably be optimized if we have many connections
 	if(!monitoredFlags[flagName].includes(ws)) {
 		monitoredFlags[flagName].push(ws);
+		//todo: send initial state
 	}
 }
 
