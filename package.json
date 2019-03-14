@@ -1,0 +1,12 @@
+{
+  "name": "gitlab-feature-flags-ws",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "unleash-client": "^3.2.1",
+    "ws": "^6.2.0"
+  }
+}
