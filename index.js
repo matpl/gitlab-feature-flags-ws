@@ -14,6 +14,11 @@ if(!instanceId) {
 	process.exit();
 }
 
+var intervalMs = 5000;
+if(process.argv[5]) {
+	intervalMs = process.argv[5];
+}
+
 const { initialize, isEnabled } = require('unleash-client');
 const instance = initialize({
     url: url,
@@ -21,7 +26,6 @@ const instance = initialize({
     instanceId: instanceId,
 });
 
-const intervalMs = 5000;
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 80 });
 
