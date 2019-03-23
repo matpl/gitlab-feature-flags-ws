@@ -43,7 +43,7 @@ function sendFlagState(flagName, interval) {
 		for(let i = monitoredFlags[flagName].length - 1; i >= 0; i--) {
 			try {
 				if(monitoredFlags[flagName][i].readyState == 1) {
-					monitoredFlags[flagName][i].send(flagName + ' ' + enabled);
+					monitoredFlags[flagName][i].send(JSON.stringify({ flag: flagName, state: enabled }));
 				} else {
 					monitoredFlags[flagName].splice(i, 1);
 					if(monitoredFlags[flagName].length == 0) {
@@ -67,7 +67,7 @@ function sendFlagState(flagName, interval) {
 function sendInitial(flagName, ws) {
 	var enabled = isEnabled(flagName);
 	console.log('send initial state: %s', flagName + ' ' + enabled);
-	ws.send(flagName + ' ' + enabled);
+	ws.send(JSON.stringify({ flag: flagName, state: enabled }));
 }
 
 function monitorFeatureFlag(flagName, ws) {
